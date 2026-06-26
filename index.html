@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#4d96ff" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎈</text></svg>" />
+  <title>아이 놀이터 — 인지 미니게임</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 홈 화면 -->
+    <section id="home">
+      <h1 class="home-title">🎈 아이 놀이터</h1>
+      <p class="home-sub">눌러서 놀이를 골라요</p>
+      <div id="tiles" class="tiles"></div>
+      <button id="soundToggle" class="sound-toggle" aria-label="소리 켜기/끄기">🔊</button>
+    </section>
+
+    <!-- 게임 화면 -->
+    <section id="gameView" hidden>
+      <header class="game-header">
+        <button id="backBtn" class="back-btn">⬅️ 처음으로</button>
+        <span id="gameTitle" class="game-title-text"></span>
+        <button id="replayBtn" class="replay-btn" aria-label="다시 시작">🔄</button>
+      </header>
+      <div id="gameRoot" class="game-root"></div>
+    </section>
+  </div>
+
+  <script src="js/util.js"></script>
+  <script src="js/games/counting.js"></script>
+  <script src="js/games/sorting.js"></script>
+  <script src="js/games/memory.js"></script>
+  <script src="js/games/shadow.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
