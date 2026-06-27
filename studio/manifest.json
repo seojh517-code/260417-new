@@ -1,0 +1,18 @@
+{
+  "name": "그림 놀이터 — 그리기·색칠·스티커",
+  "short_name": "그림 놀이터",
+  "description": "만 4세를 위한 그림·색칠·스티커 창작 앱 (애플펜슬 지원)",
+  "lang": "ko",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#ffe9f3",
+  "theme_color": "#ff7eb9",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ff7eb9'/><text x='50' y='72' font-size='62' text-anchor='middle'>%F0%9F%8E%A8</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

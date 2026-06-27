@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#ff7eb9" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>" />
+  <title>그림 놀이터 — 그리기·색칠·스티커</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 홈: 모드 선택 -->
+    <section id="home">
+      <h1 class="home-title">🎨 그림 놀이터</h1>
+      <p class="home-sub">무엇을 하고 놀까요?</p>
+      <div class="mode-tiles">
+        <button id="modeDraw" class="mode-tile draw">
+          <span class="mode-icon">🎨</span>
+          <span class="mode-name">그리기</span>
+          <span class="mode-desc">자유롭게 그리고 스티커 붙이기</span>
+        </button>
+        <button id="modeColor" class="mode-tile color">
+          <span class="mode-icon">🖍️</span>
+          <span class="mode-name">색칠하기</span>
+          <span class="mode-desc">도안에 색칠하기 (내 그림도 가능)</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 스튜디오 -->
+    <section id="studioView" hidden>
+      <header class="top-bar">
+        <button id="homeBtn" class="tb-btn">⬅️</button>
+        <span id="studioTitle" class="studio-title"></span>
+        <div class="top-actions">
+          <button id="undoBtn" class="tb-btn" aria-label="되돌리기">↩️</button>
+          <button id="redoBtn" class="tb-btn" aria-label="다시실행">↪️</button>
+          <button id="saveBtn" class="tb-btn" aria-label="저장">💾</button>
+        </div>
+      </header>
+      <div id="canvasArea" class="canvas-area"></div>
+      <div id="toolbar" class="toolbar"></div>
+    </section>
+  </div>
+
+  <script src="js/util.js"></script>
+  <script src="js/art/brushes.js"></script>
+  <script src="js/art/stickers.js"></script>
+  <script src="js/art/templates.js"></script>
+  <script src="js/art/engine.js"></script>
+  <script src="js/art/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
