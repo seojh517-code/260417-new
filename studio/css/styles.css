@@ -49,8 +49,9 @@ body { background: linear-gradient(135deg, #ffe9f3, #e9f3ff); }
   padding: 10px; overflow: hidden;
 }
 .canvas-stack { position: relative; background: #fff; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); overflow: hidden; }
-.c-paint, .c-outline { position: absolute; top: 0; left: 0; pointer-events: none; }
-.c-outline { mix-blend-mode: multiply; }
+.c-paint, .c-outline, .c-sticker { position: absolute; top: 0; left: 0; pointer-events: none; }
+.c-outline { mix-blend-mode: multiply; } /* 도안: 칠 위, 흰 부분 투명 */
+.c-sticker { mix-blend-mode: normal; }   /* 스티커: 도안 위 */
 
 /* 붓/지우개 크기 미리보기 링 */
 .brush-cursor {

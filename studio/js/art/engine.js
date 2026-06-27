@@ -8,16 +8,19 @@ App.art.createEngine = function (host) {
   const MAXBACK = 1500; // 백버퍼 한 변 최대(메모리·성능 보호)
 
   const stack = U.el('div', 'canvas-stack');
-  const paint = U.el('canvas', 'c-paint');
-  const outline = U.el('canvas', 'c-outline');
+  const paint = U.el('canvas', 'c-paint');     // 칠(도안 아래)
+  const outline = U.el('canvas', 'c-outline'); // 도안 선화(multiply)
+  const over = U.el('canvas', 'c-sticker');    // 스티커(도안 위)
   stack.appendChild(paint);
   stack.appendChild(outline);
+  stack.appendChild(over);
   const cursor = U.el('div', 'brush-cursor'); // 붓/지우개 크기 미리보기
   cursor.hidden = true;
   stack.appendChild(cursor);
   host.appendChild(stack);
   const pctx = paint.getContext('2d', { willReadFrequently: true });
   const octx = outline.getContext('2d', { willReadFrequently: true });
+  const sctx = over.getContext('2d', { willReadFrequently: true });
 
   const ERASER_K = 1.6; // 지우개 지름 배율(붓과 무관, 일관)
 
@@ -51,15 +54,16 @@ App.art.createEngine = function (host) {
     const bw = Math.round(w * scale), bh = Math.round(h * scale);
     if (paint.width === bw && paint.height === bh) return;
 
-    const tmp = document.createElement('canvas');
-    tmp.width = Math.max(1, paint.width); tmp.height = Math.max(1, paint.height);
-    if (paint.width) tmp.getContext('2d').drawImage(paint, 0, 0);
+    // 기존 칠/스티커 보존(리사이즈)
+    const snapCanvas = (src) => { const t = document.createElement('canvas'); t.width = Math.max(1, src.width); t.height = Math.max(1, src.height); if (src.width) t.getContext('2d').drawImage(src, 0, 0); return t; };
+    const tmpP = snapCanvas(paint), tmpO = snapCanvas(over);
 
-    [paint, outline].forEach((c) => {
+    [paint, outline, over].forEach((c) => {
       c.width = bw; c.height = bh; c.style.width = w + 'px'; c.style.height = h + 'px';
     });
     stack.style.width = w + 'px'; stack.style.height = h + 'px';
-    if (tmp.width > 1) pctx.drawImage(tmp, 0, 0, tmp.width, tmp.height, 0, 0, bw, bh);
+    if (tmpP.width > 1) pctx.drawImage(tmpP, 0, 0, tmpP.width, tmpP.height, 0, 0, bw, bh);
+    if (tmpO.width > 1) sctx.drawImage(tmpO, 0, 0, tmpO.width, tmpO.height, 0, 0, bw, bh);
     renderOutline();
   }
 
@@ -82,7 +86,11 @@ App.art.createEngine = function (host) {
   /* ---------- 히스토리 (스냅샷) ---------- */
   const HISTMAX = 12;
   let states = [], cur = -1;
-  function snap() { try { return pctx.getImageData(0, 0, paint.width, paint.height); } catch (e) { return null; } }
+  function snap() {
+    try { return { u: pctx.getImageData(0, 0, paint.width, paint.height), o: sctx.getImageData(0, 0, over.width, over.height) }; }
+    catch (e) { return null; }
+  }
+  function applyState(s) { if (!s) return; pctx.putImageData(s.u, 0, 0); sctx.putImageData(s.o, 0, 0); }
   function resetHistory() { const s = snap(); states = s ? [s] : []; cur = states.length - 1; fireChange(); }
   function commit() {
     const s = snap(); if (!s) return;
@@ -92,8 +100,8 @@ App.art.createEngine = function (host) {
     cur = states.length - 1;
     fireChange();
   }
-  function undo() { if (cur > 0) { cur--; pctx.putImageData(states[cur], 0, 0); fireChange(); } }
-  function redo() { if (cur < states.length - 1) { cur++; pctx.putImageData(states[cur], 0, 0); fireChange(); } }
+  function undo() { if (cur > 0) { cur--; applyState(states[cur]); fireChange(); } }
+  function redo() { if (cur < states.length - 1) { cur++; applyState(states[cur]); fireChange(); } }
   function fireChange() { if (changeCb) changeCb(); }
 
   /* ---------- 그리기 ---------- */
@@ -110,11 +118,14 @@ App.art.createEngine = function (host) {
   function drawDab(p, pr) {
     const b = state.brush;
     if (state.tool === 'eraser') {
-      pctx.save();
-      pctx.globalCompositeOperation = 'destination-out';
-      pctx.beginPath(); pctx.arc(p.x, p.y, eraserRadiusDev(), 0, 6.2832);
-      pctx.fillStyle = 'rgba(0,0,0,1)'; pctx.fill();
-      pctx.restore();
+      // 칠과 스티커 둘 다 지움(포인터 아래 무엇이든)
+      [pctx, sctx].forEach((c) => {
+        c.save();
+        c.globalCompositeOperation = 'destination-out';
+        c.beginPath(); c.arc(p.x, p.y, eraserRadiusDev(), 0, 6.2832);
+        c.fillStyle = 'rgba(0,0,0,1)'; c.fill();
+        c.restore();
+      });
       return;
     }
     const alpha = b.baseAlpha * (b.pressureA ? (0.4 + 0.6 * pr) : 1);
@@ -130,20 +141,20 @@ App.art.createEngine = function (host) {
     last = p;
   }
 
-  /* ---------- 스티커 ---------- */
+  /* ---------- 스티커 (도안 위 레이어에 찍음) ---------- */
   function stamp(p) {
     const s = state.sticker; if (!s) return;
     const size = state.size * scale * 4.5;
     if (s.type === 'emoji') {
-      pctx.save();
-      pctx.font = `${size}px "Apple Color Emoji","Noto Color Emoji",serif`;
-      pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
-      pctx.fillText(s.sym, p.x, p.y);
-      pctx.restore();
+      sctx.save();
+      sctx.font = `${size}px "Apple Color Emoji","Noto Color Emoji",serif`;
+      sctx.textAlign = 'center'; sctx.textBaseline = 'middle';
+      sctx.fillText(s.sym, p.x, p.y);
+      sctx.restore();
     } else if (s.type === 'image' && s.img) {
       const r = size / Math.max(s.img.width, s.img.height);
       const w = s.img.width * r, h = s.img.height * r;
-      pctx.drawImage(s.img, p.x - w / 2, p.y - h / 2, w, h);
+      sctx.drawImage(s.img, p.x - w / 2, p.y - h / 2, w, h);
     }
   }
 
@@ -246,7 +257,7 @@ App.art.createEngine = function (host) {
   ro.observe(host);
   fit(); resetHistory();
 
-  /* ---------- 저장(합성) ---------- */
+  /* ---------- 저장(합성: 칠 → 도안(multiply) → 스티커(위)) ---------- */
   function exportPNG() {
     const out = document.createElement('canvas');
     out.width = paint.width; out.height = paint.height;
@@ -255,6 +266,8 @@ App.art.createEngine = function (host) {
     c.drawImage(paint, 0, 0);
     c.globalCompositeOperation = 'multiply';
     c.drawImage(outline, 0, 0);
+    c.globalCompositeOperation = 'source-over';
+    c.drawImage(over, 0, 0);
     return out.toDataURL('image/png');
   }
 
@@ -268,7 +281,7 @@ App.art.createEngine = function (host) {
     setSticker(s) { state.sticker = s; state.tool = 'sticker'; },
     loadOutline(src, cb) { loadOutline(src, cb); },
     clearOutline() { outlineImg = null; octx.clearRect(0, 0, outline.width, outline.height); },
-    clearPaint() { pctx.clearRect(0, 0, paint.width, paint.height); commit(); },
+    clearPaint() { pctx.clearRect(0, 0, paint.width, paint.height); sctx.clearRect(0, 0, over.width, over.height); commit(); },
     undo, redo,
     canUndo() { return cur > 0; },
     canRedo() { return cur < states.length - 1; },
