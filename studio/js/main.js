@@ -18,8 +18,32 @@
 
     engine.onChange(refreshTop);
     refreshTop();
+    enableCanvasDrop();
 
     if (mode === 'coloring') ui.openTemplates(); // 시작 시 도안 고르기
+  }
+
+  // 캔버스에 스티커/이미지를 끌어다 놓으면 그 자리에 바로 붙임
+  function enableCanvasDrop() {
+    const stop = (e) => { e.preventDefault(); };
+    area.addEventListener('dragover', (e) => { stop(e); area.classList.add('dropping'); });
+    area.addEventListener('dragleave', () => area.classList.remove('dropping'));
+    area.addEventListener('drop', (e) => {
+      stop(e); area.classList.remove('dropping');
+      if (!engine) return;
+      const dt = e.dataTransfer; if (!dt) return;
+      const file = (dt.files && [...dt.files].find((x) => x.type.indexOf('image/') === 0)) ||
+        ((dt.items && [...dt.items].find((x) => x.type && x.type.indexOf('image/') === 0)) || {}).getAsFile?.();
+      if (!file) return;
+      const r = new FileReader();
+      r.onload = () => {
+        const img = new Image();
+        img.onload = () => { engine.dropSticker(img, e.clientX, e.clientY); U.sfxGood(); };
+        img.src = r.result;
+        const l = U.load('studio_stickers', []); l.push(r.result); if (l.length > 60) l.shift(); U.save('studio_stickers', l);
+      };
+      r.readAsDataURL(file);
+    });
   }
 
   function back() {

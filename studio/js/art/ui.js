@@ -162,32 +162,113 @@ App.art.buildToolbar = function (engine, opts) {
     sheet.appendChild(grid);
   }
 
+  /* ---------- 내 스티커 저장(공통) ---------- */
+  function saveCustomSticker(src) {
+    if (!src) return false;
+    const l = U.load('studio_stickers', []);
+    l.push(src);
+    if (l.length > 60) l.shift(); // 너무 많아지지 않게
+    U.save('studio_stickers', l);
+    return true;
+  }
+  function useSticker(src) {
+    const img = new Image();
+    img.onload = () => engine.setSticker({ type: 'image', img });
+    img.src = src;
+  }
+  // <img> 요소를 dataURL로 (같은 출처/blob만 가능)
+  function imgToDataURL(img, cb) {
+    const go = () => {
+      try {
+        const w = img.naturalWidth || img.width || 128, h = img.naturalHeight || img.height || 128;
+        const t = document.createElement('canvas'); t.width = w; t.height = h;
+        t.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(t.toDataURL('image/png'));
+      } catch (e) { cb(null); }
+    };
+    if (img.complete && img.naturalWidth) go(); else { img.onload = go; img.onerror = () => cb(null); }
+  }
+  function blobToDataURL(blob, cb) { const r = new FileReader(); r.onload = () => cb(r.result); r.onerror = () => cb(null); r.readAsDataURL(blob); }
+
   /* ---------- 스티커 시트 ---------- */
   function openStickers() {
     const { ov, sheet } = overlay();
     sheet.appendChild(sheetHeader('스티커 고르기', () => ov.remove()));
+
     const tabs = U.el('div', 'tabs');
     const grid = U.el('div', 'sheet-grid stickers');
+    let currentCat = App.art.STICKERS[0];
 
-    function showCat(cat) {
+    function imported(src) {
+      if (saveCustomSticker(src)) {
+        useSticker(src);
+        U.toast('스티커가 추가됐어요! 화면을 톡 누르면 붙어요 🎉');
+        showCat(currentCat); // 트레이 갱신(시트 유지)
+      } else {
+        U.toast('이 스티커는 가져올 수 없어요');
+      }
+    }
+
+    // ── 가져오기 바: 아이폰/아이패드 스티커 통로 ──
+    const importBar = U.el('div', 'import-bar');
+    importBar.appendChild(U.el('div', 'import-guide',
+      '📱 아이폰·아이패드 스티커: 아래 칸을 누르고 키보드의 😀(이모지)→스티커를 고르세요. (또는 사진·붙여넣기·끌어다 놓기)'));
+    const row = U.el('div', 'import-row');
+    const cat = U.el('div', 'sticker-catch'); cat.contentEditable = 'true'; cat.setAttribute('aria-label', '스티커 붙여넣기 칸');
+    const ph = U.el('span', 'catch-ph', '여기를 눌러 스티커 붙여넣기');
+    cat.appendChild(ph);
+    const photoBtn = U.el('button', 'import-btn', '📷 사진에서');
+    photoBtn.onclick = () => pickFile((src) => { if (src) imported(src); });
+    row.appendChild(cat); row.appendChild(photoBtn);
+    importBar.appendChild(row);
+    sheet.appendChild(importBar);
+
+    // 스티커 키보드/붙여넣기로 들어온 이미지 캡처
+    cat.addEventListener('paste', (e) => {
+      const items = e.clipboardData && e.clipboardData.items; if (!items) return;
+      for (const it of items) {
+        if (it.type && it.type.indexOf('image/') === 0) {
+          e.preventDefault();
+          blobToDataURL(it.getAsFile(), (src) => { cat.innerHTML = ''; cat.appendChild(ph); if (src) imported(src); });
+          return;
+        }
+      }
+    });
+    cat.addEventListener('input', () => {
+      const img = cat.querySelector('img');
+      if (img) imgToDataURL(img, (src) => { cat.innerHTML = ''; cat.appendChild(ph); src ? imported(src) : U.toast('이 스티커는 가져올 수 없어요'); });
+    });
+    cat.addEventListener('focus', () => { if (cat.firstChild === ph) ph.style.opacity = '0.35'; });
+
+    // 끌어다 놓기(아이패드 등)
+    ['dragover', 'dragenter'].forEach((ev) => sheet.addEventListener(ev, (e) => { e.preventDefault(); sheet.classList.add('dropping'); }));
+    sheet.addEventListener('dragleave', () => sheet.classList.remove('dropping'));
+    sheet.addEventListener('drop', (e) => {
+      e.preventDefault(); sheet.classList.remove('dropping');
+      const dt = e.dataTransfer; if (!dt) return;
+      const f = dt.files && [...dt.files].find((x) => x.type.indexOf('image/') === 0);
+      if (f) { blobToDataURL(f, (src) => { if (src) imported(src); }); return; }
+      const it = dt.items && [...dt.items].find((x) => x.type && x.type.indexOf('image/') === 0);
+      if (it) { const b = it.getAsFile && it.getAsFile(); if (b) blobToDataURL(b, (src) => { if (src) imported(src); }); }
+    });
+
+    function showCat(c) {
+      currentCat = c;
       grid.innerHTML = '';
-      cat.items.forEach((sym) => {
+      // 내 스티커(아이 사진 등)를 맨 앞에
+      U.load('studio_stickers', []).forEach((src, idx) => {
+        const b = U.el('button', 'scell mine'); const im = U.el('img'); im.src = src; b.appendChild(im);
+        b.onclick = () => { useSticker(src); U.sfxTap(); ov.remove(); };
+        const del = U.el('span', 'scell-del', '✕');
+        del.onclick = (e) => { e.stopPropagation(); const l = U.load('studio_stickers', []); l.splice(idx, 1); U.save('studio_stickers', l); showCat(currentCat); };
+        b.appendChild(del);
+        grid.appendChild(b);
+      });
+      c.items.forEach((sym) => {
         const b = U.el('button', 'scell', sym);
         b.onclick = () => { engine.setSticker({ type: 'emoji', sym }); U.sfxTap(); ov.remove(); };
         grid.appendChild(b);
       });
-      U.load('studio_stickers', []).forEach((src) => {
-        const b = U.el('button', 'scell'); const im = U.el('img'); im.src = src; b.appendChild(im);
-        b.onclick = () => { const img = new Image(); img.onload = () => engine.setSticker({ type: 'image', img }); img.src = src; ov.remove(); };
-        grid.appendChild(b);
-      });
-      const add = U.el('button', 'scell add', '➕');
-      add.onclick = () => pickFile((src) => {
-        if (!src) return;
-        const l = U.load('studio_stickers', []); l.push(src); U.save('studio_stickers', l);
-        const img = new Image(); img.onload = () => engine.setSticker({ type: 'image', img }); img.src = src; ov.remove();
-      });
-      grid.appendChild(add);
     }
 
     App.art.STICKERS.forEach((c, i) => {
@@ -196,7 +277,7 @@ App.art.buildToolbar = function (engine, opts) {
       tabs.appendChild(t);
       if (i === 0) t.classList.add('active');
     });
-    showCat(App.art.STICKERS[0]);
+    showCat(currentCat);
     sheet.appendChild(tabs); sheet.appendChild(grid);
   }
 

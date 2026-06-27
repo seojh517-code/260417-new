@@ -279,6 +279,17 @@ App.art.createEngine = function (host) {
     setTool(t) { state.tool = t; },
     getTool() { return state.tool; },
     setSticker(s) { state.sticker = s; state.tool = 'sticker'; },
+    dropSticker(img, clientX, clientY) {
+      const r = stack.getBoundingClientRect();
+      const x = (clientX - r.left) / r.width * paint.width;
+      const y = (clientY - r.top) / r.height * paint.height;
+      const size = state.size * scale * 4.5;
+      const rr = size / Math.max(img.width, img.height);
+      const w = img.width * rr, h = img.height * rr;
+      sctx.drawImage(img, x - w / 2, y - h / 2, w, h);
+      commit();
+      state.sticker = { type: 'image', img }; state.tool = 'sticker'; // 이어서 더 찍기 가능
+    },
     loadOutline(src, cb) { loadOutline(src, cb); },
     clearOutline() { outlineImg = null; octx.clearRect(0, 0, outline.width, outline.height); },
     clearPaint() { pctx.clearRect(0, 0, paint.width, paint.height); sctx.clearRect(0, 0, over.width, over.height); commit(); },

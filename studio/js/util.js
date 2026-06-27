@@ -50,6 +50,16 @@ window.App = window.App || {};
     } catch (e) {}
   };
 
+  /* 안내 토스트 */
+  u.toast = (msg) => {
+    let t = document.querySelector('.toast');
+    if (!t) { t = u.el('div', 'toast'); document.body.appendChild(t); }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => t.classList.remove('show'), 2200);
+  };
+
   /* 사진 파일 → dataURL */
   u.fileToDataURL = (file, cb) => {
     const r = new FileReader();

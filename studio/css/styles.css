@@ -145,3 +145,33 @@ body { background: linear-gradient(135deg, #ffe9f3, #e9f3ff); }
 .scell:active { transform: scale(0.94); }
 .scell img { width: 100%; height: 100%; object-fit: contain; }
 .scell.add { border-style: dashed; border-color: #ffb3d1; color: #ff5a9e; }
+.scell.mine { position: relative; border-color: #ffd23f; }
+.scell-del {
+  position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
+  background: #ff5a5f; color: #fff; border-radius: 50%; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* 스티커 가져오기 바 */
+.import-bar { background: #fff7e6; border: 2px solid #ffe0a3; border-radius: 16px; padding: 10px; margin-bottom: 12px; }
+.import-guide { font-size: 13px; line-height: 1.5; color: #6a5a2a; margin-bottom: 8px; }
+.import-row { display: flex; gap: 8px; align-items: stretch; }
+.sticker-catch {
+  flex: 1; min-height: 52px; background: #fff; border: 2px dashed #ffc36b; border-radius: 12px;
+  padding: 8px 12px; font-size: 15px; display: flex; align-items: center; overflow: hidden;
+}
+.sticker-catch:focus { outline: 3px solid #4d96ff; }
+.sticker-catch img { max-height: 44px; }
+.catch-ph { color: #b08a3a; pointer-events: none; }
+.import-btn { flex: 0 0 auto; border: none; border-radius: 12px; background: #4d96ff; color: #fff; font-weight: 800; padding: 0 16px; font-size: 15px; cursor: pointer; }
+.sheet.dropping { outline: 4px dashed #4d96ff; outline-offset: -8px; }
+.canvas-area.dropping { outline: 5px dashed #4d96ff; outline-offset: -10px; border-radius: 14px; }
+
+/* 토스트 */
+.toast {
+  position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(20px);
+  background: rgba(40,40,40,0.95); color: #fff; padding: 12px 20px; border-radius: 22px;
+  font-size: 15px; font-weight: 700; z-index: 100; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s; max-width: 90vw; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
