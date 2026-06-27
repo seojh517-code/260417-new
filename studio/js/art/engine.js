@@ -12,9 +12,14 @@ App.art.createEngine = function (host) {
   const outline = U.el('canvas', 'c-outline');
   stack.appendChild(paint);
   stack.appendChild(outline);
+  const cursor = U.el('div', 'brush-cursor'); // 붓/지우개 크기 미리보기
+  cursor.hidden = true;
+  stack.appendChild(cursor);
   host.appendChild(stack);
   const pctx = paint.getContext('2d', { willReadFrequently: true });
   const octx = outline.getContext('2d', { willReadFrequently: true });
+
+  const ERASER_K = 1.6; // 지우개 지름 배율(붓과 무관, 일관)
 
   const state = {
     color: '#ff5a5f', rgb: [255, 90, 95],
@@ -101,12 +106,13 @@ App.art.createEngine = function (host) {
     const b = state.brush, dev = state.size * scale;
     return Math.max(0.5, dev * b.sizeMul * (b.pressureW ? (0.3 + 0.7 * pr) : 1) / 2);
   }
+  function eraserRadiusDev() { return state.size * ERASER_K / 2 * scale; }
   function drawDab(p, pr) {
     const b = state.brush;
     if (state.tool === 'eraser') {
       pctx.save();
       pctx.globalCompositeOperation = 'destination-out';
-      pctx.beginPath(); pctx.arc(p.x, p.y, radius(pr) * 1.2, 0, 6.2832);
+      pctx.beginPath(); pctx.arc(p.x, p.y, eraserRadiusDev(), 0, 6.2832);
       pctx.fillStyle = 'rgba(0,0,0,1)'; pctx.fill();
       pctx.restore();
       return;
@@ -179,11 +185,31 @@ App.art.createEngine = function (host) {
     pctx.putImageData(img, 0, 0);
   }
 
+  /* ---------- 커서 링(붓/지우개 크기 미리보기) ---------- */
+  function cursorDia() {
+    if (state.tool === 'eraser') return Math.max(8, state.size * ERASER_K);
+    if (state.tool === 'brush') return Math.max(6, state.size * state.brush.sizeMul);
+    return 0; // 물통·스티커는 표시 안 함
+  }
+  function updateCursor(e) {
+    const dia = cursorDia();
+    if (!dia) { cursor.hidden = true; return; }
+    const r = stack.getBoundingClientRect();
+    cursor.style.width = dia + 'px';
+    cursor.style.height = dia + 'px';
+    cursor.style.left = (e.clientX - r.left) + 'px';
+    cursor.style.top = (e.clientY - r.top) + 'px';
+    cursor.classList.toggle('eraser', state.tool === 'eraser');
+    cursor.hidden = false;
+  }
+  function hideCursor() { cursor.hidden = true; }
+
   /* ---------- 포인터 ---------- */
   function down(e) {
     if (e.pointerType === 'pen') penActive = true;
     if (e.pointerType === 'touch' && penActive) return; // 손바닥 오터치 방지
     e.preventDefault();
+    updateCursor(e);
     const p = pos(e);
     if (state.tool === 'fill') { U.sfxTap(); floodFill(p.x, p.y, state.rgb); commit(); return; }
     if (state.tool === 'sticker') { stamp(p); commit(); return; }
@@ -192,6 +218,7 @@ App.art.createEngine = function (host) {
     last = p; drawDab(p, pressureOf(e));
   }
   function move(e) {
+    updateCursor(e); // 그리는 중이 아니어도 링은 따라다님(펜/마우스 hover)
     if (!drawing || e.pointerId !== pid) return;
     if (e.pointerType === 'touch' && penActive) return;
     e.preventDefault();
@@ -201,6 +228,7 @@ App.art.createEngine = function (host) {
   }
   function up(e) {
     if (e.pointerType === 'pen') penActive = false;
+    if (e.pointerType === 'touch') hideCursor(); // 터치는 hover 없음 → 떼면 숨김
     if (!drawing || e.pointerId !== pid) return;
     drawing = false; pid = null; last = null;
     commit();
@@ -210,7 +238,8 @@ App.art.createEngine = function (host) {
   stack.addEventListener('pointerdown', down);
   stack.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up);
-  stack.addEventListener('pointercancel', up);
+  stack.addEventListener('pointercancel', (e) => { hideCursor(); up(e); });
+  stack.addEventListener('pointerleave', hideCursor);
   stack.addEventListener('contextmenu', (e) => e.preventDefault());
 
   const ro = new ResizeObserver(() => { fit(); resetHistory(); });

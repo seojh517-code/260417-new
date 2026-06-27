@@ -35,7 +35,8 @@ App.art.buildToolbar = function (engine, opts) {
   colors.appendChild(customLabel);
 
   /* ---------- 도구 줄 ---------- */
-  const tools = U.el('div', 'tb-row tools');
+  const brushRow = U.el('div', 'tb-row scrollrow');   // 화구(가로 스크롤)
+  const actions = U.el('div', 'tb-row actions');       // 나머지 도구(줄바꿈, 항상 보임)
   const toolBtns = [];
   const brushBtnByKey = {};
   let lastBrushKey = opts.coloring ? 'colored' : 'pen';
@@ -48,13 +49,13 @@ App.art.buildToolbar = function (engine, opts) {
     b.onclick = () => { lastBrushKey = br.key; engine.setBrush(br.key); setActive(b); autofillOff(); U.sfxTap(); };
     brushes.appendChild(b); toolBtns.push(b); brushBtnByKey[br.key] = b;
   });
-  tools.appendChild(brushes);
+  brushRow.appendChild(brushes);
 
   const eraser = U.el('button', 'tbtn'); eraser.innerHTML = `<span class="bi">🧽</span><span class="bl">지우개</span>`;
   eraser.onclick = () => { engine.setTool('eraser'); setActive(eraser); autofillOff(); U.sfxTap(); };
   const fill = U.el('button', 'tbtn'); fill.innerHTML = `<span class="bi">🪣</span><span class="bl">물통</span>`;
   fill.onclick = () => { engine.setTool('fill'); setActive(fill); autofillOff(); U.sfxTap(); };
-  tools.appendChild(eraser); tools.appendChild(fill); toolBtns.push(eraser, fill);
+  actions.appendChild(eraser); actions.appendChild(fill); toolBtns.push(eraser, fill);
 
   // 굵기
   const sizeWrap = U.el('div', 'size-wrap');
@@ -64,7 +65,7 @@ App.art.buildToolbar = function (engine, opts) {
   size.oninput = () => { engine.setSize(+size.value); setDot(); };
   setDot();
   sizeWrap.appendChild(sizeDot); sizeWrap.appendChild(size);
-  tools.appendChild(sizeWrap);
+  actions.appendChild(sizeWrap);
 
   // 자동칠 토글 / 도안 (색칠 모드)
   let autofillBtn = null;
@@ -86,19 +87,19 @@ App.art.buildToolbar = function (engine, opts) {
     };
     const tmplBtn = U.el('button', 'tbtn'); tmplBtn.innerHTML = `<span class="bi">🖼️</span><span class="bl">도안</span>`;
     tmplBtn.onclick = () => { openTemplates(); U.sfxTap(); };
-    tools.appendChild(autofillBtn); tools.appendChild(tmplBtn);
+    actions.appendChild(autofillBtn); actions.appendChild(tmplBtn);
   }
   if (opts.stickers) {
-    const stk = U.el('button', 'tbtn'); stk.innerHTML = `<span class="bi">🌟</span><span class="bl">스티커</span>`;
+    const stk = U.el('button', 'tbtn sticker-btn'); stk.innerHTML = `<span class="bi">🌟</span><span class="bl">스티커</span>`;
     stk.onclick = () => { openStickers(); U.sfxTap(); };
-    tools.appendChild(stk);
+    actions.appendChild(stk);
   }
 
   const clear = U.el('button', 'tbtn danger'); clear.innerHTML = `<span class="bi">🗑️</span><span class="bl">전체</span>`;
   clear.onclick = () => { if (confirm('그림을 전부 지울까요?')) { engine.clearPaint(); U.sfxTap(); } };
-  tools.appendChild(clear);
+  actions.appendChild(clear);
 
-  root.appendChild(colors); root.appendChild(tools);
+  root.appendChild(colors); root.appendChild(brushRow); root.appendChild(actions);
 
   // 초기 선택
   engine.setColor(PALETTE[0]); selColor(firstSwatch); engine.setSize(16);

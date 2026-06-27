@@ -52,12 +52,29 @@ body { background: linear-gradient(135deg, #ffe9f3, #e9f3ff); }
 .c-paint, .c-outline { position: absolute; top: 0; left: 0; pointer-events: none; }
 .c-outline { mix-blend-mode: multiply; }
 
+/* 붓/지우개 크기 미리보기 링 */
+.brush-cursor {
+  position: absolute; pointer-events: none; z-index: 5;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  border: 2px solid rgba(80,120,255,0.7);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.9);
+}
+.brush-cursor.eraser {
+  border: 2px dashed #333;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.95), inset 0 0 0 2px rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.18);
+}
+
 /* ===== 도구 바 ===== */
 .toolbar { flex: 0 0 auto; background: rgba(255,255,255,0.92); border-top: 2px solid #ffd6e8; }
 .tb { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
-.tb-row { display: flex; align-items: center; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.tb-row::-webkit-scrollbar { height: 5px; }
-.tb-row::-webkit-scrollbar-thumb { background: #ffc1dd; border-radius: 3px; }
+.tb-row { display: flex; align-items: center; gap: 8px; }
+/* 색상·화구 줄만 가로 스크롤 */
+.scrollrow, .colors { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.scrollrow::-webkit-scrollbar, .colors::-webkit-scrollbar { height: 5px; }
+.scrollrow::-webkit-scrollbar-thumb, .colors::-webkit-scrollbar-thumb { background: #ffc1dd; border-radius: 3px; }
+/* 액션 줄: 절대 가려지지 않게 줄바꿈 */
+.actions { flex-wrap: wrap; overflow: visible; row-gap: 6px; }
 
 .colors { padding-bottom: 2px; }
 .swatch {
@@ -81,6 +98,8 @@ body { background: linear-gradient(135deg, #ffe9f3, #e9f3ff); }
 .tbtn.active { background: #d9ecff; box-shadow: 0 3px 0 #4d96ff; }
 .tbtn.danger.active, .tbtn.danger { }
 .tbtn.toggle.on { background: #d6f7df; box-shadow: 0 3px 0 #3ec46d; }
+.tbtn.sticker-btn { background: #fff0b3; box-shadow: 0 3px 0 #f0c000; }
+.tbtn.sticker-btn .bi { font-size: 24px; }
 
 .size-wrap { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; padding: 0 6px; min-width: 160px; }
 .size-dot { display: inline-block; background: #555; border-radius: 50%; flex: 0 0 auto; min-width: 4px; min-height: 4px; }

@@ -13,7 +13,7 @@
     title.textContent = mode === 'draw' ? '🎨 그리기' : '🖍️ 색칠하기';
 
     engine = App.art.createEngine(area);
-    ui = App.art.buildToolbar(engine, { coloring: mode === 'coloring', stickers: mode === 'draw' });
+    ui = App.art.buildToolbar(engine, { coloring: mode === 'coloring', stickers: true });
     toolbar.appendChild(ui.el);
 
     engine.onChange(refreshTop);
