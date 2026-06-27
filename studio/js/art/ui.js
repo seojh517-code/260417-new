@@ -176,19 +176,24 @@ App.art.buildToolbar = function (engine, opts) {
     img.onload = () => engine.setSticker({ type: 'image', img });
     img.src = src;
   }
-  // <img> 요소를 dataURL로 (같은 출처/blob만 가능)
-  function imgToDataURL(img, cb) {
-    const go = () => {
-      try {
-        const w = img.naturalWidth || img.width || 128, h = img.naturalHeight || img.height || 128;
-        const t = document.createElement('canvas'); t.width = w; t.height = h;
-        t.getContext('2d').drawImage(img, 0, 0, w, h);
-        cb(t.toDataURL('image/png'));
-      } catch (e) { cb(null); }
-    };
-    if (img.complete && img.naturalWidth) go(); else { img.onload = go; img.onerror = () => cb(null); }
-  }
   function blobToDataURL(blob, cb) { const r = new FileReader(); r.onload = () => cb(r.result); r.onerror = () => cb(null); r.readAsDataURL(blob); }
+  function pickFileRaw(cb) {
+    const inp = U.el('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.style.display = 'none';
+    document.body.appendChild(inp);
+    inp.onchange = () => { const f = inp.files && inp.files[0]; cb(f || null); inp.remove(); };
+    inp.click();
+  }
+  // 배경 제거기(지연 로드). 테스트/대체용으로 App.art.removeBackground 우선.
+  let bgPromise = null;
+  function getRemover() {
+    if (App.art.removeBackground) return Promise.resolve(App.art.removeBackground);
+    if (!bgPromise) {
+      bgPromise = import('https://esm.sh/@imgly/background-removal')
+        .then((m) => m.removeBackground || (m.default && m.default.removeBackground) || m.default)
+        .catch((e) => { bgPromise = null; throw e; });
+    }
+    return bgPromise;
+  }
 
   /* ---------- 스티커 시트 ---------- */
   function openStickers() {
@@ -209,36 +214,40 @@ App.art.buildToolbar = function (engine, opts) {
       }
     }
 
-    // ── 가져오기 바: 아이폰/아이패드 스티커 통로 ──
+    // 사진 → 인물 자동 오려내기 → 스티커
+    function makeCutout(file) {
+      const layer = U.el('div', 'cutout-overlay');
+      layer.innerHTML = '<div class="cut-spin"></div><div class="cut-text">인물을 쏙 오리는 중… ✂️</div><div class="cut-pct"></div>';
+      ov.appendChild(layer);
+      const pctEl = layer.querySelector('.cut-pct');
+      getRemover()
+        .then((remove) => remove(file, { progress: (key, cur, tot) => { if (tot) pctEl.textContent = Math.round(cur / tot * 100) + '%'; } }))
+        .then((blob) => blobToDataURL(blob, (src) => { layer.remove(); src ? imported(src) : U.toast('오려내기에 실패했어요'); }))
+        .catch(() => { layer.remove(); U.toast('인터넷이 필요하거나 지원되지 않아요 — "사진 그대로"로 추가해 보세요'); });
+    }
+
+    // ── 가져오기 바: 사진에서 스티커 만들기 ──
     const importBar = U.el('div', 'import-bar');
     importBar.appendChild(U.el('div', 'import-guide',
-      '📱 아이폰·아이패드 스티커: 아래 칸을 누르고 키보드의 😀(이모지)→스티커를 고르세요. (또는 사진·붙여넣기·끌어다 놓기)'));
+      '📷 사진을 골라 인물만 쏙 오려 스티커로 만들어요. (이미지를 붙여넣거나 끌어다 놓아도 돼요)'));
     const row = U.el('div', 'import-row');
-    const cat = U.el('div', 'sticker-catch'); cat.contentEditable = 'true'; cat.setAttribute('aria-label', '스티커 붙여넣기 칸');
-    const ph = U.el('span', 'catch-ph', '여기를 눌러 스티커 붙여넣기');
-    cat.appendChild(ph);
-    const photoBtn = U.el('button', 'import-btn', '📷 사진에서');
-    photoBtn.onclick = () => pickFile((src) => { if (src) imported(src); });
-    row.appendChild(cat); row.appendChild(photoBtn);
+    const cutBtn = U.el('button', 'import-btn primary', '✂️ 사진에서 오려내기');
+    cutBtn.onclick = () => pickFileRaw((file) => { if (file) makeCutout(file); });
+    const plainBtn = U.el('button', 'import-btn', '🖼️ 사진 그대로');
+    plainBtn.onclick = () => pickFile((src) => { if (src) imported(src); });
+    row.appendChild(cutBtn); row.appendChild(plainBtn);
     importBar.appendChild(row);
     sheet.appendChild(importBar);
 
-    // 스티커 키보드/붙여넣기로 들어온 이미지 캡처
-    cat.addEventListener('paste', (e) => {
+    // 붙여넣기(데스크톱 등) — 시트가 열려 있는 동안만
+    const onPaste = (e) => {
+      if (!document.body.contains(ov)) return;
       const items = e.clipboardData && e.clipboardData.items; if (!items) return;
       for (const it of items) {
-        if (it.type && it.type.indexOf('image/') === 0) {
-          e.preventDefault();
-          blobToDataURL(it.getAsFile(), (src) => { cat.innerHTML = ''; cat.appendChild(ph); if (src) imported(src); });
-          return;
-        }
+        if (it.type && it.type.indexOf('image/') === 0) { e.preventDefault(); blobToDataURL(it.getAsFile(), (src) => { if (src) imported(src); }); return; }
       }
-    });
-    cat.addEventListener('input', () => {
-      const img = cat.querySelector('img');
-      if (img) imgToDataURL(img, (src) => { cat.innerHTML = ''; cat.appendChild(ph); src ? imported(src) : U.toast('이 스티커는 가져올 수 없어요'); });
-    });
-    cat.addEventListener('focus', () => { if (cat.firstChild === ph) ph.style.opacity = '0.35'; });
+    };
+    document.addEventListener('paste', onPaste);
 
     // 끌어다 놓기(아이패드 등)
     ['dragover', 'dragenter'].forEach((ev) => sheet.addEventListener(ev, (e) => { e.preventDefault(); sheet.classList.add('dropping'); }));
@@ -246,10 +255,9 @@ App.art.buildToolbar = function (engine, opts) {
     sheet.addEventListener('drop', (e) => {
       e.preventDefault(); sheet.classList.remove('dropping');
       const dt = e.dataTransfer; if (!dt) return;
-      const f = dt.files && [...dt.files].find((x) => x.type.indexOf('image/') === 0);
-      if (f) { blobToDataURL(f, (src) => { if (src) imported(src); }); return; }
-      const it = dt.items && [...dt.items].find((x) => x.type && x.type.indexOf('image/') === 0);
-      if (it) { const b = it.getAsFile && it.getAsFile(); if (b) blobToDataURL(b, (src) => { if (src) imported(src); }); }
+      const f = (dt.files && [...dt.files].find((x) => x.type.indexOf('image/') === 0)) ||
+        ((dt.items && [...dt.items].find((x) => x.type && x.type.indexOf('image/') === 0)) || {}).getAsFile?.();
+      if (f) blobToDataURL(f, (src) => { if (src) imported(src); });
     });
 
     function showCat(c) {

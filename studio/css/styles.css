@@ -155,16 +155,22 @@ body { background: linear-gradient(135deg, #ffe9f3, #e9f3ff); }
 /* 스티커 가져오기 바 */
 .import-bar { background: #fff7e6; border: 2px solid #ffe0a3; border-radius: 16px; padding: 10px; margin-bottom: 12px; }
 .import-guide { font-size: 13px; line-height: 1.5; color: #6a5a2a; margin-bottom: 8px; }
-.import-row { display: flex; gap: 8px; align-items: stretch; }
-.sticker-catch {
-  flex: 1; min-height: 52px; background: #fff; border: 2px dashed #ffc36b; border-radius: 12px;
-  padding: 8px 12px; font-size: 15px; display: flex; align-items: center; overflow: hidden;
-}
-.sticker-catch:focus { outline: 3px solid #4d96ff; }
-.sticker-catch img { max-height: 44px; }
-.catch-ph { color: #b08a3a; pointer-events: none; }
-.import-btn { flex: 0 0 auto; border: none; border-radius: 12px; background: #4d96ff; color: #fff; font-weight: 800; padding: 0 16px; font-size: 15px; cursor: pointer; }
+.import-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.import-btn { flex: 1 1 auto; border: none; border-radius: 12px; background: #fff; color: #4d96ff; border: 2px solid #cfe1ff; font-weight: 800; padding: 12px 16px; font-size: 15px; cursor: pointer; }
+.import-btn:active { transform: translateY(1px); }
+.import-btn.primary { background: #4d96ff; color: #fff; border-color: #4d96ff; }
 .sheet.dropping { outline: 4px dashed #4d96ff; outline-offset: -8px; }
+
+/* 오려내는 중 오버레이 */
+.cutout-overlay {
+  position: absolute; inset: 0; background: rgba(255,255,255,0.92); z-index: 30;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  border-radius: 24px 24px 0 0;
+}
+.cut-spin { width: 56px; height: 56px; border: 6px solid #ffe0a3; border-top-color: #ff9f1c; border-radius: 50%; animation: cut-spin 0.9s linear infinite; }
+.cut-text { font-size: 18px; font-weight: 800; }
+.cut-pct { font-size: 16px; font-weight: 700; color: #ff9f1c; min-height: 20px; }
+@keyframes cut-spin { to { transform: rotate(360deg); } }
 .canvas-area.dropping { outline: 5px dashed #4d96ff; outline-offset: -10px; border-radius: 14px; }
 
 /* 토스트 */
